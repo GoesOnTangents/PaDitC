@@ -1,0 +1,361 @@
+package rules
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v2.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+import com.onlineOrder.determinePaymentOptions.Input
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+/*declare  Input
+    customerType : String  
+    amount : BigDecimal  
+    location : String  
+    discountCode : Boolean  
+end*/
+
+declare  PaymentOptions_Rule_Output 
+    paymentOptions : String  
+end
+
+declare  PaymentOptions_Output 
+    paymentOptions : List  
+end
+
+declare  Discount_Output 
+    discount : BigDecimal  
+end
+
+declare  AnnotationItem 
+    decision : String  
+    annotationName : String  
+    ruleName : String  
+    category : AnnotationCategory  
+    message : String  
+    timestamp : OffsetDateTime  
+end
+
+declare enum AnnotationCategory
+	INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "4dc264a1e1d347ff99a5fe9962256237");
+	drools.getWorkingMemory().setGlobal("revisionNumber", -1);
+end
+
+rule "initialize_annotations_list"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    salience 999
+when
+    $input : Input(  )  
+then
+	$logger.info($input.toString());
+end
+
+rule "paymentOptions_rule_1"
+    no-loop true
+    //decision:  paymentOptions
+    salience 7
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("Credit Card");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_rule_2"
+    no-loop true
+    //decision:  paymentOptions
+    salience 6
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("PayPal");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_rule_3"
+    no-loop true
+    //decision:  paymentOptions
+    salience 5
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval($F.not($F.equals($input.getCustomerType(), "Gold"))) ) 
+    eval( $F.nullSafeEval($F.equals($discount_Output.getDiscount(), BigDecimal.valueOf(0.0))) ) 
+    eval( $F.nullSafeEval(($F.greaterThanOrEqualTo($input.getAmount(), BigDecimal.valueOf(500.0)))) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("Credit Card");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_rule_4"
+    no-loop true
+    //decision:  paymentOptions
+    salience 4
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval($F.not($F.equals($input.getCustomerType(), "Gold"))) ) 
+    eval( $F.nullSafeEval($F.equals($discount_Output.getDiscount(), BigDecimal.valueOf(0.0))) ) 
+    eval( $F.nullSafeEval($F.equals($input.getLocation(), "EU")) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("PayPal");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_rule_5"
+    no-loop true
+    //decision:  paymentOptions
+    salience 3
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval($F.not($F.equals($input.getCustomerType(), "Gold"))) ) 
+    eval( $F.nullSafeEval($F.equals($input.getLocation(), "Non-EU")) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("PayPal");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_rule_6"
+    no-loop true
+    //decision:  paymentOptions
+    salience 2
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval($F.equals($input.getLocation(), "EU")) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("Transfer");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_rule_7"
+    no-loop true
+    //decision:  paymentOptions
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    eval( $F.nullSafeEval(($F.lessThan($input.getAmount(), BigDecimal.valueOf(500.0)))) ) 
+    eval( $F.nullSafeEval($F.equals($input.getLocation(), "EU")) ) 
+then
+	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
+	$paymentOptions_Rule_Output.setPaymentOptions("Cash");
+	insert($paymentOptions_Rule_Output);
+end
+
+rule "paymentOptions_aggregation"
+    no-loop true
+    //decision:  paymentOptions
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PaymentOptions_Output(  )   ) 
+    $input : Input(  )  
+    $discount_Output : Discount_Output(  )  
+    $all_paymentOptions : List(  ) from accumulate(     
+    PaymentOptions_Rule_Output( $each : paymentOptions )  ,
+        collectList( $each ) )
+ 
+    $all_PaymentOptions_Rule_Output : List(  ) from collect( PaymentOptions_Rule_Output(  )  ) 
+then
+	PaymentOptions_Output $paymentOptions_Output = new PaymentOptions_Output();
+	$paymentOptions_Output.setPaymentOptions($all_paymentOptions);
+	insert($paymentOptions_Output);
+end
+
+rule "discount_rule_1"
+    no-loop true
+    //decision:  discount
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getDiscountCode(), false)) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.1));
+	insert($discount_Output);
+end
+
+rule "discount_rule_2"
+    no-loop true
+    //decision:  discount
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getDiscountCode(), true)) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.3));
+	insert($discount_Output);
+end
+
+rule "discount_rule_3"
+    no-loop true
+    //decision:  discount
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Silver")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getDiscountCode(), true)) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.2));
+	insert($discount_Output);
+end
+
+rule "discount_rule_4"
+    no-loop true
+    //decision:  discount
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Silver")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getDiscountCode(), false)) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.0));
+	insert($discount_Output);
+end
+
+rule "discount_rule_5"
+    no-loop true
+    //decision:  discount
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Standard")) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.0));
+	insert($discount_Output);
+end
+
+rule "discount_emptyResultFallBack"
+    no-loop true
+    //decision:  discount
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(null);
+	insert($discount_Output);
+end

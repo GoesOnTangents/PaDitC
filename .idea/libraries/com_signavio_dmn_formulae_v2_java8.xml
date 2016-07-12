@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="com.signavio.dmn.formulae.v2.java8">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/com.signavio.dmn.formulae.v2.java8.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,253 @@
+package rules
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v2.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+import com.onlineOrder.determinePickupDate.Input
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae
+end
+
+declare  DmnHierarchyFormulae
+end
+
+
+declare  Supplier_Output
+    supplier : String
+end
+
+declare  DeliveryTime_Output
+    deliveryTime : BigDecimal
+end
+
+declare  PickUpDate_Output
+    pickUpDate : LocalDate
+end
+
+declare  AnnotationItem
+    decision : String
+    annotationName : String
+    ruleName : String
+    category : AnnotationCategory
+    message : String
+    timestamp : OffsetDateTime
+end
+
+declare enum AnnotationCategory
+    INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    salience 1000
+when
+then
+drools.getWorkingMemory().setGlobal("modelId", "4790ec8f25db4b07bf26ac736d1d13cc");
+drools.getWorkingMemory().setGlobal("revisionNumber", -1);
+end
+
+rule "initialize_annotations_list"
+    salience 1000
+when
+then
+drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+when
+then
+insert(new DmnFormulaeLocal());
+insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    salience 1000
+when
+then
+drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    salience 999
+when
+    $input : Input(  )
+then
+$logger.info($input.toString());
+end
+
+rule "supplier_rule_1"
+    no-loop true
+    //decision:  supplier
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    Supplier_Output(  )   )
+    $input : Input(  )
+    eval( $F.nullSafeEval(($F.lessThan($input.getOrderSize(), BigDecimal.valueOf(10.0)))) )
+then
+Supplier_Output $supplier_Output = new Supplier_Output();
+$supplier_Output.setSupplier("Supplier A");
+insert($supplier_Output);
+end
+
+rule "supplier_rule_2"
+    no-loop true
+    //decision:  supplier
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    Supplier_Output(  )   )
+    $input : Input(  )
+    eval( $F.nullSafeEval(($F.greaterThanOrEqualTo($input.getOrderSize(), BigDecimal.valueOf(10.0)))) )
+then
+Supplier_Output $supplier_Output = new Supplier_Output();
+$supplier_Output.setSupplier("Supplier B");
+insert($supplier_Output);
+end
+
+rule "supplier_emptyResultFallBack"
+    no-loop true
+    //decision:  supplier
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    Supplier_Output(  )   )
+    $input : Input(  )
+then
+Supplier_Output $supplier_Output = new Supplier_Output();
+$supplier_Output.setSupplier(null);
+insert($supplier_Output);
+end
+
+rule "deliveryTime_rule_1"
+    no-loop true
+    //decision:  deliveryTime
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    DeliveryTime_Output(  )   )
+    $input : Input(  )
+    $supplier_Output : Supplier_Output(  )
+    eval( $F.nullSafeEval($F.equals($supplier_Output.getSupplier(), "Supplier A")) )
+then
+DeliveryTime_Output $deliveryTime_Output = new DeliveryTime_Output();
+$deliveryTime_Output.setDeliveryTime(BigDecimal.valueOf(3.0));
+insert($deliveryTime_Output);
+end
+
+rule "deliveryTime_rule_2"
+    no-loop true
+    //decision:  deliveryTime
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    DeliveryTime_Output(  )   )
+    $input : Input(  )
+    $supplier_Output : Supplier_Output(  )
+    eval( $F.nullSafeEval($F.equals($supplier_Output.getSupplier(), "Supplier B")) )
+then
+DeliveryTime_Output $deliveryTime_Output = new DeliveryTime_Output();
+$deliveryTime_Output.setDeliveryTime(BigDecimal.valueOf(5.0));
+insert($deliveryTime_Output);
+end
+
+rule "deliveryTime_emptyResultFallBack"
+    no-loop true
+    //decision:  deliveryTime
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    DeliveryTime_Output(  )   )
+    $input : Input(  )
+    $supplier_Output : Supplier_Output(  )
+then
+DeliveryTime_Output $deliveryTime_Output = new DeliveryTime_Output();
+$deliveryTime_Output.setDeliveryTime(null);
+insert($deliveryTime_Output);
+end
+
+rule "pickUpDate_rule_1"
+    no-loop true
+    //decision:  pickUpDate
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    PickUpDate_Output(  )   )
+    $input : Input(  )
+    $deliveryTime_Output : DeliveryTime_Output(  )
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) )
+then
+PickUpDate_Output $pickUpDate_Output = new PickUpDate_Output();
+$pickUpDate_Output.setPickUpDate($F.dayAdd($F.today(), ($F.plus($deliveryTime_Output.getDeliveryTime(), BigDecimal.valueOf(1.0)))));
+insert($pickUpDate_Output);
+end
+
+rule "pickUpDate_rule_2"
+    no-loop true
+    //decision:  pickUpDate
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    PickUpDate_Output(  )   )
+    $input : Input(  )
+    $deliveryTime_Output : DeliveryTime_Output(  )
+    eval( $F.nullSafeEval($F.not($F.equals($input.getCustomerType(), "Gold"))) )
+then
+PickUpDate_Output $pickUpDate_Output = new PickUpDate_Output();
+$pickUpDate_Output.setPickUpDate($F.dayAdd($F.today(), ($F.plus($deliveryTime_Output.getDeliveryTime(), BigDecimal.valueOf(2.0)))));
+insert($pickUpDate_Output);
+end
+
+rule "pickUpDate_emptyResultFallBack"
+    no-loop true
+    //decision:  pickUpDate
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )
+    $H : DmnHierarchyFormulae(  )
+    not(
+    PickUpDate_Output(  )   )
+    $input : Input(  )
+    $deliveryTime_Output : DeliveryTime_Output(  )
+then
+PickUpDate_Output $pickUpDate_Output = new PickUpDate_Output();
+$pickUpDate_Output.setPickUpDate(null);
+insert($pickUpDate_Output);
+end
+
