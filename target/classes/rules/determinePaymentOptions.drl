@@ -15,7 +15,11 @@ import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
 import java.time.LocalDate
 import java.util.Collections
 import java.math.RoundingMode
+import com.onlineOrder.determinePaymentOptions
 import com.onlineOrder.determinePaymentOptions.Input
+//import com.onlineOrder.determinePaymentOptions.PaymentOptions_Rule_Output
+//import com.onlineOrder.determinePaymentOptions.PaymentOptions_Output
+//import com.onlineOrder.determinePaymentOptions.Discount_Output
 
 global String modelId
 global Integer revisionNumber
@@ -38,7 +42,7 @@ end
     discountCode : Boolean  
 end*/
 
-declare  PaymentOptions_Rule_Output 
+declare  PaymentOptions_Rule_Output
     paymentOptions : String  
 end
 
@@ -108,11 +112,11 @@ rule "paymentOptions_rule_1"
 when
     $F : DmnFormulaeLocal(  )  
     $H : DmnHierarchyFormulae(  )  
-    not( 
-    PaymentOptions_Output(  )   ) 
-    $input : Input(  )  
-    $discount_Output : Discount_Output(  )  
-    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) ) 
+    not(
+    PaymentOptions_Output(  )   )
+    $input : Input(  )
+    $discount_Output : Discount_Output(  )
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) )
 then
 	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
 	$paymentOptions_Rule_Output.setPaymentOptions("Credit Card");
@@ -129,8 +133,8 @@ when
     not( 
     PaymentOptions_Output(  )   ) 
     $input : Input(  )  
-    $discount_Output : Discount_Output(  )  
-    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) ) 
+       $discount_Output : Discount_Output(  )
+    eval( $F.nullSafeEval($F.equals($input.getCustomerType(), "Gold")) )
 then
 	PaymentOptions_Rule_Output $paymentOptions_Rule_Output = new PaymentOptions_Rule_Output();
 	$paymentOptions_Rule_Output.setPaymentOptions("PayPal");
