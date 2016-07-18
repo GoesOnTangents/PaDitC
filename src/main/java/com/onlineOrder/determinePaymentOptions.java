@@ -20,10 +20,10 @@ public class determinePaymentOptions implements JavaDelegate
 
     public void execute(DelegateExecution execution) throws Exception
     {
-    }
+    /*}
 
     public static void main(String args[])
-    {
+    {*/
         Input input = new Input();
 
         // load up the knowledge base
